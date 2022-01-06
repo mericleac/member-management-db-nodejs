@@ -1,6 +1,7 @@
 // Create express app
 var express = require("express");
-var bodyParser = require('body-parser')
+var bodyParser = require('body-parser');
+var cors = require("cors");
 
 var app = express();
 
@@ -8,8 +9,14 @@ var app = express();
 app.use(bodyParser.urlencoded({extended : true}));
 app.use(bodyParser.json());
 
+const corsOptions = {
+    origin: "http://localhost:8081"
+};
+  
+app.use(cors(corsOptions));
+
 // Controllers
-var userController = require("./controlers/users");
+var userController = require("./controllers/users");
 
 // Server port
 var HTTP_PORT = 8000;
