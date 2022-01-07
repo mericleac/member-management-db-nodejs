@@ -26,7 +26,10 @@ let db = new sqlite3.Database(DBSOURCE, (err) => {
                 qb_date date,
                 invoice_num text,
                 receipt_num text,
-                type text
+                type text,
+                amount real,
+                newsletter boolean,
+                renewal text
             )`,
             (err) => {}
         );

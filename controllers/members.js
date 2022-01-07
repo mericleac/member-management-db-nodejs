@@ -1,4 +1,7 @@
-var db = require("../database.js")
+const db = require("../database.js");
+const fs = require('fs');
+const { Parser } = require('json2csv');
+const csv = require('fast-csv');
 
 const fields = [
     'first_name',
@@ -16,13 +19,36 @@ const fields = [
     'qb_date',
     'invoice_num',
     'receipt_num',
-    'type'
-]
+    'type',
+    'renewal',
+    'amount',
+    'newsletter'
+];
+
+const headerToFieldMapping = {
+    'Membership End Date': 'membership_end_date',
+    'QB Date': 'qb_date',
+    'Receipt #': 'receipt_num',
+    'Last Name': 'last_name',
+    'Street': 'street_address',
+    'State': 'state',
+    'County': 'county',
+    'Email': 'email',
+    'notes': 'notes',
+    'Renew or New': 'renewal',
+    'Invoice #': 'invoice_num',
+    'Type': 'type',
+    'First Name': 'first_name',
+    'City': 'city',
+    'Zip': 'zip',
+    'Phone#': 'phone_number',
+    'Amount': 'amount',
+    'Notes': 'notes'
+};
 
 exports.getMembers = (req, res) => {
-    var sql = "select * from member"
-    var params = []
-    db.all(sql, params, (err, rows) => {
+    const sql = 'select * from member';
+    db.all(sql, (err, rows) => {
         if (err) {
           res.status(400).json({"error":err.message});
           return;
@@ -56,7 +82,7 @@ exports.getMember = (req, res) => {
     const params = [req.params.id];
     db.get(sql, params, (err, row) => {
         if (err) {
-          res.status(400).json({"error":err.message});
+          res.status(400).json({"error": err.message});
           return;
         }
         res.json(row);
@@ -74,7 +100,7 @@ exports.updateMember = (req, res) => {
         params,
         (err, result) => {
             if (err){
-                res.status(400).json({"error": res.message});
+                res.status(400).json({"error": err.message});
                 return;
             }
             res.json({
@@ -90,9 +116,69 @@ exports.deleteMember = (req, res) => {
         [req.params.id],
         (err, result) => {
             if (err){
-                res.status(400).json({"error": res.message});
+                res.status(400).json({"error": err.message});
                 return;
             }
             res.status(204).json({});
       });
+};
+
+exports.exportMembers = (req, res) => {
+    let ids = req.query.ids;
+    if (!Array.isArray(ids)) {
+        ids = [ids];
+    }
+    const sql = `select * from member where id IN (${ids.join(',')})`;
+    db.all(sql, (err, rows) => {
+        if (err) {
+          res.status(400).json({"error":err.message});
+          return;
+        }
+
+        const json2csvParser = new Parser();
+        const csv = json2csvParser.parse(rows);
+        res.setHeader('Content-Disposition', 'attachment; filename=data.csv');
+        res.set('Content-Type', 'text/csv');
+        res.status(200).send(csv);
+      });
+};
+
+exports.importMembers = (req, res) => {
+    const filePath = `${__basedir}/uploads/${req.file.filename}`;
+    let stream = fs.createReadStream(filePath);
+    let csvData = [];
+    let csvStream = csv
+        .parse()
+        .on("data", function (data) {
+            csvData.push(data);
+        })
+        .on("end", function () {
+            const headers = csvData.shift();
+            const fieldString = headers.map(header => headerToFieldMapping[header.trim()]).join(', ');
+            const varArray = [];
+            varArray.length = headers.length;
+            varArray.fill('?');
+            const memberPlaceholders = csvData.map(() => `(${varArray.join(', ')})`).join(', ');
+            const flatMembers = [];
+            csvData.forEach((arr) => { arr.forEach((item) => { flatMembers.push(item) }) });
+            const sql = `INSERT INTO member (${fieldString}) VALUES ${memberPlaceholders}`;
+            console.log(sql);
+            console.log(flatMembers);
+            db.run(sql, flatMembers, (err, result) => {
+                if (err){
+                    res.status(400).json({"error": err.message});
+                    return;
+                }
+                const sql = 'select * from member';
+                db.all(sql, (err, rows) => {
+                    if (err) {
+                        res.status(400).json({"error": err.message});
+                        return;
+                    }
+                    res.json(rows);
+                });
+            });
+        });
+    fs.unlinkSync(filePath);
+    stream.pipe(csvStream);
 };
