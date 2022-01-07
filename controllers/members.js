@@ -162,8 +162,6 @@ exports.importMembers = (req, res) => {
             const flatMembers = [];
             csvData.forEach((arr) => { arr.forEach((item) => { flatMembers.push(item) }) });
             const sql = `INSERT INTO member (${fieldString}) VALUES ${memberPlaceholders}`;
-            console.log(sql);
-            console.log(flatMembers);
             db.run(sql, flatMembers, (err, result) => {
                 if (err){
                     res.status(400).json({"error": err.message});
