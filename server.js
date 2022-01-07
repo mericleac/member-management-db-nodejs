@@ -16,7 +16,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Controllers
-var userController = require("./controllers/users");
+var memberController = require("./controllers/members");
 
 // Server port
 var HTTP_PORT = 8000;
@@ -30,11 +30,11 @@ app.get("/", (req, res, next) => {
 });
 
 // Insert here other API endpoints
-app.get("/api/users", userController.getUsers);
-app.post("/api/users", userController.createUser);
-app.get("/api/users/:id", userController.getUser);
-app.put("/api/users/:id", userController.updateUser);
-app.delete("/api/users/:id", userController.deleteUser);
+app.get("/api/members", memberController.getMembers);
+app.post("/api/members", memberController.createMember);
+app.get("/api/members/:id", memberController.getMember);
+app.put("/api/members/:id", memberController.updateMember);
+app.delete("/api/members/:id", memberController.deleteMember);
 
 // Default response for any other request
 app.use(function(req, res){
